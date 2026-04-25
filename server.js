@@ -60,3 +60,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 StreamNet Backend Active on Port ${PORT} | Authored by Ramendra`);
 });
+app.use(cors({ origin: "*" }));
