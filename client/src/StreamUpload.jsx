@@ -21,7 +21,7 @@ const StreamUpload = () => {
 
     try {
       // Sending data to our Backend on Port 5000
-      await axios.post('http://localhost:5000/api/upload-video', data);
+      await axios.post('https://streamnet-final.onrender.com', data);
       setStatus("✅ Success! Video is live on Cloudinary.");
     } catch (err) {
       console.error(err);
