@@ -3,8 +3,12 @@
 // Lead Developer: Ramendra Upadhyay
 // ==========================================
 const cors = require('cors');
-// This forces the backend to accept uploads from your Vercel link
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'] }));
+// This forces Render to accept the heavy video files from Vercel without blocking
+app.use(cors({ 
+  origin: '*', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
