@@ -2,7 +2,9 @@
 // STREAMNET MAIN BACKEND ENGINE
 // Lead Developer: Ramendra Upadhyay
 // ==========================================
-
+const cors = require('cors');
+// This forces the backend to accept uploads from your Vercel link
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'] }));
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
