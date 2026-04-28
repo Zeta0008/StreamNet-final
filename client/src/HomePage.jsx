@@ -5,81 +5,180 @@ import axios from 'axios';
 const HomePage = () => {
   const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [nameInput, setNameInput] = useState('');
+  
+  // Mobile responsiveness check
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  // 1. MEMORY: Site checks local storage to see if you exist
+  // 1. MEMORY: Remember the user from local storage
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('sn_user_profile');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('streamnet_master_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
   });
 
+  // Handle window resize for mobile
   useEffect(() => {
-    const fetch = async () => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 2. FETCH VIDEOS: Anyone can see the videos
+  useEffect(() => {
+    const fetchVideos = async () => {
       try {
         const res = await axios.get('https://streamnet-final.onrender.com/api/videos');
         setVideos(res.data);
-      } catch (e) { console.log("Connecting to nodes..."); }
+      } catch (err) {
+        console.error("Connecting to nodes...");
+      } finally {
+        setLoading(false);
+      }
     };
-    fetch();
+    fetchVideos();
   }, []);
 
-  const handleCreateProfile = (e) => {
+  // 3. AUTH LOGIC
+  const requireAuth = (action) => {
+    if (!user) {
+      setActiveModal('auth');
+    } else {
+      if (action === 'upload') navigate('/upload');
+      if (action === 'profile') setActiveModal('settings');
+    }
+  };
+
+  const handleSaveProfile = (e) => {
     e.preventDefault();
     const newUser = { name: nameInput };
-    localStorage.setItem('sn_user_profile', JSON.stringify(newUser)); // SAVE PERMANENTLY
+    localStorage.setItem('streamnet_master_user', JSON.stringify(newUser));
     setUser(newUser);
     setActiveModal(null);
   };
 
-  const switchProfile = () => {
-    localStorage.removeItem('sn_user_profile'); // WIPE FOR NEW USER
+  const switchAccount = () => {
+    localStorage.removeItem('streamnet_master_user');
     setUser(null);
     setActiveModal('auth');
   };
 
+  // UI Data Arrays
+  const leftMenu = ['HOME', 'MY PROFILE', 'FOLLOWING', 'SAVED', 'ARCHIVES PRIVATE', 'NEW', 'ABOUT', 'SUBSCRIPTION'];
+  const categories = ['NEWS', 'WAR', 'STOCKS', 'CENSORED', 'SPORTS', 'ECONOMY', 'TECHNOLOGY', 'INDIA CENTRAL', 'WORLD VIEW'];
+
   return (
-    <div style={s.page}>
-      <nav style={s.nav}>
-        <h1 style={s.logo}>StreamNet</h1>
-        <div style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
-          <button style={s.upBtn} onClick={() => user ? navigate('/upload') : setActiveModal('auth')}>+ Upload</button>
-          <div style={s.avatar} onClick={() => user ? setActiveModal('settings') : setActiveModal('auth')}>
+    <div style={styles.dashboard}>
+      {/* --- TOP NAVBAR --- */}
+      <nav style={styles.navbar}>
+        <div style={styles.navLeft}>
+          <h1 style={styles.logo} onClick={() => window.location.reload()}>StreamNet</h1>
+        </div>
+        
+        {!isMobile && (
+          <div style={styles.navCenter}>
+            <input type="text" placeholder="Search StreamNet..." style={styles.searchBar} />
+          </div>
+        )}
+
+        <div style={styles.navRight}>
+          <button style={styles.uploadBtn} onClick={() => requireAuth('upload')}>+ Upload</button>
+          <div style={styles.avatar} onClick={() => requireAuth('profile')}>
             {user ? user.name.charAt(0).toUpperCase() : '?'}
           </div>
         </div>
       </nav>
 
-      {/* RESPONSIVE GRID: Adapts to Android automatically */}
-      <div style={s.grid}>
-        {videos.map(v => (
-          <div key={v._id} style={s.card}>
-            <video src={v.videoUrl} controls style={s.vid} />
-            <p style={s.vidTitle}>{v.title}</p>
-          </div>
-        ))}
+      <div style={styles.mainLayout}>
+        {/* --- LEFT SIDEBAR (Hidden on Mobile) --- */}
+        {!isMobile && (
+          <aside style={styles.leftSidebar}>
+            <div style={styles.menuList}>
+              {leftMenu.map((item, idx) => (
+                <button 
+                  key={idx} 
+                  style={item === 'HOME' ? styles.menuItemActive : styles.menuItem}
+                  onClick={() => item === 'MY PROFILE' ? requireAuth('profile') : null}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+            
+            <div style={styles.supportBox}>
+              <h4 style={{margin: '0 0 5px 0', color: '#06b6d4'}}>Support StreamNet</h4>
+              <p style={{margin: 0, fontSize: '10px', color: '#888'}}>Donate for non-censorship.</p>
+            </div>
+          </aside>
+        )}
+
+        {/* --- CENTER VIDEO FEED --- */}
+        <main style={styles.contentArea}>
+          <h2 style={styles.sectionTitle}>Recommended For You</h2>
+          
+          {loading ? (
+             <p style={{textAlign: 'center', color: '#888', marginTop: '50px'}}>Connecting to secure nodes...</p>
+          ) : (
+            <>
+              <div style={styles.videoGrid}>
+                {videos.length === 0 && <p style={{color: '#888'}}>No videos live. Upload something!</p>}
+                {videos.map(vid => (
+                  <div key={vid._id} style={styles.videoCard}>
+                    <video src={vid.videoUrl} controls style={styles.thumbnail} />
+                    <div style={styles.cardInfo}>
+                      <p style={styles.vidTitle}>{vid.title}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Pagination Mockup */}
+              <div style={styles.pagination}>
+                <span style={styles.pageActive}>1</span>
+                <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>&gt;</span>
+              </div>
+            </>
+          )}
+        </main>
+
+        {/* --- RIGHT SIDEBAR (Hidden on Mobile) --- */}
+        {!isMobile && (
+          <aside style={styles.rightSidebar}>
+            <h3 style={styles.categoryHeader}>CATEGORIES</h3>
+            {categories.map(cat => (
+              <button key={cat} style={styles.categoryItem}>{cat}</button>
+            ))}
+          </aside>
+        )}
       </div>
 
-      {/* AUTH MODAL */}
+      {/* --- MODALS --- */}
       {activeModal === 'auth' && (
-        <div style={s.overlay}>
-          <div style={s.modal}>
-            <h3>Initialize Identity</h3>
-            <form onSubmit={handleCreateProfile} style={s.form}>
-              <input placeholder="Enter Name" required onChange={e => setNameInput(e.target.value)} style={s.input}/>
-              <button style={s.btn}>Save & Enter</button>
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <h3 style={{color: '#fff', marginBottom: '5px'}}>Initialize Identity</h3>
+            <p style={{color: '#888', fontSize: '12px', marginBottom: '20px'}}>Create a local profile to upload videos.</p>
+            <form onSubmit={handleSaveProfile} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
+              <input placeholder="Enter Username" required onChange={e => setNameInput(e.target.value)} style={styles.modalInput}/>
+              <button style={styles.primaryBtn}>Save Identity</button>
+              <button type="button" onClick={() => setActiveModal(null)} style={styles.secondaryBtn}>Cancel</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* SETTINGS (YouTube Switch Style) */}
       {activeModal === 'settings' && user && (
-        <div style={s.overlay}>
-          <div style={s.modal}>
-            <h1 style={{color: '#06b6d4'}}>@{user.name}</h1>
-            <button onClick={switchProfile} style={s.switchBtn}>⇄ Switch / Add Another Profile</button>
-            <button onClick={() => setActiveModal(null)} style={s.btn}>Close</button>
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <h3 style={{color: '#fff', marginBottom: '5px'}}>Identity Active</h3>
+            <h1 style={{color: '#a855f7', margin: '10px 0'}}>@{user.name}</h1>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '30px'}}>
+              <button onClick={switchAccount} style={styles.outlineBtn}>⇄ Switch / Add Account</button>
+              <button onClick={() => setActiveModal(null)} style={styles.primaryBtn}>Close Dashboard</button>
+            </div>
           </div>
         </div>
       )}
@@ -87,22 +186,47 @@ const HomePage = () => {
   );
 };
 
-const s = {
-  page: { minHeight: '100vh', backgroundColor: '#050505', color: '#fff', fontFamily: 'Inter, sans-serif' },
-  nav: { display: 'flex', justifyContent: 'space-between', padding: '15px 5%', background: '#0a0a0a', borderBottom: '1px solid #222' },
-  logo: { fontSize: '1.5rem', fontWeight: 'bold', textShadow: '0 0 10px #06b6d4' },
-  upBtn: { padding: '8px 16px', background: 'linear-gradient(90deg, #a855f7, #06b6d4)', border: 'none', borderRadius: '4px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' },
-  avatar: { width: '40px', height: '40px', borderRadius: '50%', background: '#222', border: '2px solid #a855f7', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', fontWeight: 'bold' },
-  grid: { display: 'flex', flexWrap: 'wrap', gap: '20px', padding: '30px 5%', justifyContent: 'center' },
-  card: { width: '300px', flexGrow: 1, maxWidth: '400px', backgroundColor: '#111', borderRadius: '10px', overflow: 'hidden', border: '1px solid #222' },
-  vid: { width: '100%', height: '200px', objectFit: 'cover' },
-  vidTitle: { padding: '15px', margin: 0, fontSize: '14px' },
-  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100, padding: '20px' },
-  modal: { background: '#111', padding: '30px', borderRadius: '15px', border: '1px solid #333', textAlign: 'center', width: '100%', maxWidth: '350px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' },
-  input: { padding: '12px', background: '#1a1a1a', border: '1px solid #333', color: '#fff', borderRadius: '6px' },
-  btn: { padding: '12px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontWeight: 'bold', marginTop: '10px', cursor: 'pointer' },
-  switchBtn: { padding: '12px', background: 'transparent', border: '1px solid #06b6d4', color: '#06b6d4', borderRadius: '6px', marginBottom: '10px', width: '100%', cursor: 'pointer' }
+// --- CSS STYLES ---
+const styles = {
+  dashboard: { display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#050505', color: '#fff', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
+  
+  navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: '#0a0a0a', borderBottom: '1px solid #222', zIndex: 10 },
+  logo: { margin: 0, fontSize: '24px', fontWeight: '900', color: '#fff', textShadow: '0 0 10px #a855f7', cursor: 'pointer' },
+  navCenter: { flex: 1, display: 'flex', justifyContent: 'center' },
+  searchBar: { width: '100%', maxWidth: '400px', padding: '10px 20px', borderRadius: '20px', border: '1px solid #222', backgroundColor: '#111', color: '#fff', outline: 'none' },
+  navRight: { display: 'flex', alignItems: 'center', gap: '15px' },
+  uploadBtn: { padding: '8px 20px', background: 'linear-gradient(90deg, #a855f7, #06b6d4)', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' },
+  avatar: { width: '35px', height: '35px', borderRadius: '50%', backgroundColor: '#222', border: '2px solid #06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer' },
+
+  mainLayout: { display: 'flex', flex: 1, overflow: 'hidden' },
+  
+  leftSidebar: { width: '220px', background: '#050505', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
+  menuList: { display: 'flex', flexDirection: 'column', flex: 1 },
+  menuItem: { padding: '15px 25px', background: 'transparent', border: 'none', color: '#888', fontWeight: 'bold', fontSize: '12px', textAlign: 'left', cursor: 'pointer' },
+  menuItemActive: { padding: '15px 25px', background: '#111', border: 'none', color: '#fff', fontWeight: 'bold', fontSize: '12px', textAlign: 'left', cursor: 'pointer', borderLeft: '3px solid #a855f7' },
+  supportBox: { margin: '20px', padding: '15px', background: 'rgba(6, 182, 212, 0.05)', border: '1px solid rgba(6, 182, 212, 0.2)', borderRadius: '8px' },
+
+  contentArea: { flex: 1, padding: '30px', overflowY: 'auto', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sectionTitle: { margin: '0 0 30px 0', fontSize: '18px', color: '#fff', textAlign: 'center' },
+  videoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px', width: '100%', maxWidth: '1000px' },
+  videoCard: { background: '#111', borderRadius: '8px', overflow: 'hidden', border: '1px solid #222' },
+  thumbnail: { width: '100%', height: '150px', backgroundColor: '#000', objectFit: 'cover' },
+  cardInfo: { padding: '15px' },
+  vidTitle: { margin: 0, fontSize: '14px', color: '#eee' },
+  
+  pagination: { display: 'flex', gap: '15px', marginTop: '40px', color: '#888', fontSize: '14px', alignItems: 'center' },
+  pageActive: { background: '#a855f7', color: '#fff', padding: '5px 10px', borderRadius: '4px', fontWeight: 'bold' },
+
+  rightSidebar: { width: '200px', background: '#050505', borderLeft: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0' },
+  categoryHeader: { padding: '0 20px', fontSize: '11px', color: '#666', letterSpacing: '1px', marginBottom: '15px' },
+  categoryItem: { padding: '10px 20px', background: 'transparent', border: 'none', color: '#888', fontSize: '12px', textAlign: 'left', cursor: 'pointer' },
+
+  overlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 100 },
+  modal: { background: '#111', padding: '30px', borderRadius: '12px', border: '1px solid #333', textAlign: 'center', width: '100%', maxWidth: '350px' },
+  modalInput: { padding: '12px', background: '#1a1a1a', border: '1px solid #333', color: '#fff', borderRadius: '6px', width: '100%', boxSizing: 'border-box' },
+  primaryBtn: { padding: '12px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%' },
+  secondaryBtn: { padding: '12px', background: 'transparent', color: '#888', border: 'none', cursor: 'pointer', width: '100%' },
+  outlineBtn: { padding: '12px', background: 'transparent', border: '1px solid #a855f7', color: '#a855f7', borderRadius: '6px', cursor: 'pointer', width: '100%' }
 };
 
 export default HomePage;
