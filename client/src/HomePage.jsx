@@ -5,11 +5,10 @@ import axios from 'axios';
 const HomePage = () => {
   const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [nameInput, setNameInput] = useState('');
   
-  // 1. MEMORY: Remember the user from local storage
+  // PROFILE MEMORY: Check local storage
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('streamnet_master_user');
@@ -17,23 +16,20 @@ const HomePage = () => {
     } catch (e) { return null; }
   });
 
-  // 2. FETCH VIDEOS: Get the videos from the live Render backend
+  // FETCH VIDEOS
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        // Force the connection to the correct Render URL
         const res = await axios.get('https://streamnet-final.onrender.com/api/videos');
         setVideos(res.data);
       } catch (err) {
-        console.error("Connecting to nodes...");
-      } finally {
-        setLoading(false);
+        console.error("Backend offline, waiting for Render...");
       }
     };
     fetchVideos();
   }, []);
 
-  // 3. AUTH LOGIC
+  // AUTH LOGIC
   const requireAuth = (action) => {
     if (!user) {
       setActiveModal('auth');
@@ -58,7 +54,6 @@ const HomePage = () => {
     setActiveModal('auth');
   };
 
-  // UI Data Arrays (Restoring your original sidebars)
   const leftMenu = ['HOME', 'MY PROFILE', 'FOLLOWING', 'SAVED', 'ARCHIVES PRIVATE', 'NEW', 'ABOUT', 'SUBSCRIPTION'];
   const categories = ['NEWS', 'WAR', 'STOCKS', 'CENSORED', 'SPORTS', 'ECONOMY', 'TECHNOLOGY', 'INDIA CENTRAL', 'WORLD VIEW'];
 
@@ -82,8 +77,10 @@ const HomePage = () => {
         </div>
       </nav>
 
+      {/* --- INDESTRUCTIBLE 3-COLUMN LAYOUT --- */}
       <div style={styles.mainLayout}>
-        {/* --- LEFT SIDEBAR (Original UI Restored) --- */}
+        
+        {/* LEFT SIDEBAR */}
         <aside style={styles.leftSidebar}>
           <div style={styles.menuList}>
             {leftMenu.map((item, idx) => (
@@ -96,49 +93,47 @@ const HomePage = () => {
               </button>
             ))}
           </div>
-          
           <div style={styles.supportBox}>
             <h4 style={{margin: '0 0 5px 0', color: '#06b6d4'}}>Support StreamNet</h4>
             <p style={{margin: 0, fontSize: '10px', color: '#888'}}>Donate for non-censorship.</p>
           </div>
         </aside>
 
-        {/* --- CENTER VIDEO FEED --- */}
+        {/* CENTER FEED */}
         <main style={styles.contentArea}>
           <h2 style={styles.sectionTitle}>Recommended For You</h2>
           
-          {loading ? (
-             <p style={{textAlign: 'center', color: '#888', marginTop: '50px'}}>Connecting to secure nodes...</p>
-          ) : (
-            <>
-              <div style={styles.videoGrid}>
-                {videos.length === 0 && <p style={{color: '#888'}}>No videos live. Upload something!</p>}
-                {videos.map(vid => (
-                  <div key={vid._id} style={styles.videoCard}>
-                    <video src={vid.videoUrl} controls style={styles.thumbnail} />
-                    <div style={styles.cardInfo}>
-                      <p style={styles.vidTitle}>{vid.title}</p>
-                    </div>
-                  </div>
-                ))}
+          <div style={styles.videoGrid}>
+            {videos.length === 0 && (
+              <p style={{color: '#888', gridColumn: '1 / -1', textAlign: 'center'}}>
+                Network nodes booting up or no videos deployed.
+              </p>
+            )}
+            {videos.map(vid => (
+              <div key={vid._id} style={styles.videoCard}>
+                <video src={vid.videoUrl} controls style={styles.thumbnail} />
+                <div style={styles.cardInfo}>
+                  <p style={styles.vidTitle}>{vid.title}</p>
+                </div>
               </div>
-              
-              {/* Pagination Mockup (Original UI Restored) */}
-              <div style={styles.pagination}>
-                <span style={styles.pageActive}>1</span>
-                <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>&gt;</span>
-              </div>
-            </>
-          )}
+            ))}
+          </div>
+          
+          {/* PAGINATION */}
+          <div style={styles.pagination}>
+            <span style={styles.pageActive}>1</span>
+            <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>&gt;</span>
+          </div>
         </main>
 
-        {/* --- RIGHT SIDEBAR (Original UI Restored) --- */}
+        {/* RIGHT SIDEBAR */}
         <aside style={styles.rightSidebar}>
           <h3 style={styles.categoryHeader}>CATEGORIES</h3>
           {categories.map(cat => (
             <button key={cat} style={styles.categoryItem}>{cat}</button>
           ))}
         </aside>
+
       </div>
 
       {/* --- MODALS --- */}
@@ -149,7 +144,7 @@ const HomePage = () => {
             <p style={{color: '#888', fontSize: '12px', marginBottom: '20px'}}>Create a local profile to upload videos.</p>
             <form onSubmit={handleSaveProfile} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
               <input placeholder="Enter Username" required onChange={e => setNameInput(e.target.value)} style={styles.modalInput}/>
-              <button style={styles.primaryBtn}>Save Identity</button>
+              <button type="submit" style={styles.primaryBtn}>Save Identity</button>
               <button type="button" onClick={() => setActiveModal(null)} style={styles.secondaryBtn}>Cancel</button>
             </form>
           </div>
@@ -172,29 +167,29 @@ const HomePage = () => {
   );
 };
 
-// --- CSS STYLES ---
+// --- LOCKED CSS STYLES ---
 const styles = {
-  dashboard: { display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#050505', color: '#fff', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
+  dashboard: { display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#050505', color: '#fff', fontFamily: "'Inter', sans-serif" },
   
-  navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: '#0a0a0a', borderBottom: '1px solid #222', zIndex: 10 },
+  navbar: { height: '70px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 30px', background: '#0a0a0a', borderBottom: '1px solid #222', zIndex: 10 },
   logo: { margin: 0, fontSize: '24px', fontWeight: '900', color: '#fff', textShadow: '0 0 10px #a855f7', cursor: 'pointer' },
-  navLeft: { width: '220px' }, // Match sidebar width
+  navLeft: { width: '220px' },
   navCenter: { flex: 1, display: 'flex', justifyContent: 'center' },
   searchBar: { width: '100%', maxWidth: '400px', padding: '10px 20px', borderRadius: '20px', border: '1px solid #222', backgroundColor: '#111', color: '#fff', outline: 'none' },
   navRight: { display: 'flex', alignItems: 'center', gap: '15px', width: '200px', justifyContent: 'flex-end' },
   uploadBtn: { padding: '8px 20px', background: 'linear-gradient(90deg, #a855f7, #06b6d4)', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' },
   avatar: { width: '35px', height: '35px', borderRadius: '50%', backgroundColor: '#222', border: '2px solid #06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer' },
 
-  mainLayout: { display: 'flex', flex: 1, overflow: 'hidden' },
+  mainLayout: { display: 'flex', flex: 1, height: 'calc(100vh - 70px)' }, // Forces columns to stay visible
   
-  leftSidebar: { width: '220px', minWidth: '220px', background: '#050505', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
+  leftSidebar: { width: '220px', background: '#050505', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
   menuList: { display: 'flex', flexDirection: 'column', flex: 1 },
   menuItem: { padding: '15px 25px', background: 'transparent', border: 'none', color: '#888', fontWeight: 'bold', fontSize: '12px', textAlign: 'left', cursor: 'pointer' },
   menuItemActive: { padding: '15px 25px', background: '#111', border: 'none', color: '#fff', fontWeight: 'bold', fontSize: '12px', textAlign: 'left', cursor: 'pointer', borderLeft: '3px solid #a855f7' },
   supportBox: { margin: '20px', padding: '15px', background: 'rgba(6, 182, 212, 0.05)', border: '1px solid rgba(6, 182, 212, 0.2)', borderRadius: '8px' },
 
   contentArea: { flex: 1, padding: '30px', overflowY: 'auto', backgroundColor: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  sectionTitle: { margin: '0 0 30px 0', fontSize: '18px', color: '#fff', textAlign: 'center' },
+  sectionTitle: { margin: '0 0 30px 0', fontSize: '18px', color: '#fff', width: '100%', textAlign: 'left', maxWidth: '1000px' },
   videoGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px', width: '100%', maxWidth: '1000px' },
   videoCard: { background: '#111', borderRadius: '8px', overflow: 'hidden', border: '1px solid #222' },
   thumbnail: { width: '100%', height: '150px', backgroundColor: '#000', objectFit: 'cover' },
@@ -204,7 +199,7 @@ const styles = {
   pagination: { display: 'flex', gap: '15px', marginTop: '40px', color: '#888', fontSize: '14px', alignItems: 'center', cursor: 'pointer' },
   pageActive: { background: '#a855f7', color: '#fff', padding: '5px 10px', borderRadius: '4px', fontWeight: 'bold' },
 
-  rightSidebar: { width: '200px', minWidth: '200px', background: '#050505', borderLeft: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
+  rightSidebar: { width: '200px', background: '#050505', borderLeft: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
   categoryHeader: { padding: '0 20px', fontSize: '11px', color: '#666', letterSpacing: '1px', marginBottom: '15px' },
   categoryItem: { padding: '10px 20px', background: 'transparent', border: 'none', color: '#888', fontSize: '12px', textAlign: 'left', cursor: 'pointer' },
 
@@ -214,5 +209,6 @@ const styles = {
   primaryBtn: { padding: '12px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%' },
   secondaryBtn: { padding: '12px', background: 'transparent', color: '#888', border: 'none', cursor: 'pointer', width: '100%' },
   outlineBtn: { padding: '12px', background: 'transparent', border: '1px solid #a855f7', color: '#a855f7', borderRadius: '6px', cursor: 'pointer', width: '100%' }
+};
 
 export default HomePage;
