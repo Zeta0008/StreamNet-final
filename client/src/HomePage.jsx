@@ -214,6 +214,5 @@ const styles = {
   primaryBtn: { padding: '12px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%' },
   secondaryBtn: { padding: '12px', background: 'transparent', color: '#888', border: 'none', cursor: 'pointer', width: '100%' },
   outlineBtn: { padding: '12px', background: 'transparent', border: '1px solid #a855f7', color: '#a855f7', borderRadius: '6px', cursor: 'pointer', width: '100%' }
-};
 
 export default HomePage;
