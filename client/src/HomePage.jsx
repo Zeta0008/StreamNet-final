@@ -9,9 +9,6 @@ const HomePage = () => {
   const [activeModal, setActiveModal] = useState(null);
   const [nameInput, setNameInput] = useState('');
   
-  // Mobile responsiveness check
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
   // 1. MEMORY: Remember the user from local storage
   const [user, setUser] = useState(() => {
     try {
@@ -20,17 +17,11 @@ const HomePage = () => {
     } catch (e) { return null; }
   });
 
-  // Handle window resize for mobile
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // 2. FETCH VIDEOS: Anyone can see the videos
+  // 2. FETCH VIDEOS: Get the videos from the live Render backend
   useEffect(() => {
     const fetchVideos = async () => {
       try {
+        // Force the connection to the correct Render URL
         const res = await axios.get('https://streamnet-final.onrender.com/api/videos');
         setVideos(res.data);
       } catch (err) {
@@ -54,7 +45,8 @@ const HomePage = () => {
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
-    const newUser = { name: nameInput };
+    if (!nameInput.trim()) return;
+    const newUser = { name: nameInput.trim() };
     localStorage.setItem('streamnet_master_user', JSON.stringify(newUser));
     setUser(newUser);
     setActiveModal(null);
@@ -66,7 +58,7 @@ const HomePage = () => {
     setActiveModal('auth');
   };
 
-  // UI Data Arrays
+  // UI Data Arrays (Restoring your original sidebars)
   const leftMenu = ['HOME', 'MY PROFILE', 'FOLLOWING', 'SAVED', 'ARCHIVES PRIVATE', 'NEW', 'ABOUT', 'SUBSCRIPTION'];
   const categories = ['NEWS', 'WAR', 'STOCKS', 'CENSORED', 'SPORTS', 'ECONOMY', 'TECHNOLOGY', 'INDIA CENTRAL', 'WORLD VIEW'];
 
@@ -78,11 +70,9 @@ const HomePage = () => {
           <h1 style={styles.logo} onClick={() => window.location.reload()}>StreamNet</h1>
         </div>
         
-        {!isMobile && (
-          <div style={styles.navCenter}>
-            <input type="text" placeholder="Search StreamNet..." style={styles.searchBar} />
-          </div>
-        )}
+        <div style={styles.navCenter}>
+          <input type="text" placeholder="Search StreamNet..." style={styles.searchBar} />
+        </div>
 
         <div style={styles.navRight}>
           <button style={styles.uploadBtn} onClick={() => requireAuth('upload')}>+ Upload</button>
@@ -93,27 +83,25 @@ const HomePage = () => {
       </nav>
 
       <div style={styles.mainLayout}>
-        {/* --- LEFT SIDEBAR (Hidden on Mobile) --- */}
-        {!isMobile && (
-          <aside style={styles.leftSidebar}>
-            <div style={styles.menuList}>
-              {leftMenu.map((item, idx) => (
-                <button 
-                  key={idx} 
-                  style={item === 'HOME' ? styles.menuItemActive : styles.menuItem}
-                  onClick={() => item === 'MY PROFILE' ? requireAuth('profile') : null}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-            
-            <div style={styles.supportBox}>
-              <h4 style={{margin: '0 0 5px 0', color: '#06b6d4'}}>Support StreamNet</h4>
-              <p style={{margin: 0, fontSize: '10px', color: '#888'}}>Donate for non-censorship.</p>
-            </div>
-          </aside>
-        )}
+        {/* --- LEFT SIDEBAR (Original UI Restored) --- */}
+        <aside style={styles.leftSidebar}>
+          <div style={styles.menuList}>
+            {leftMenu.map((item, idx) => (
+              <button 
+                key={idx} 
+                style={item === 'HOME' ? styles.menuItemActive : styles.menuItem}
+                onClick={() => item === 'MY PROFILE' ? requireAuth('profile') : null}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          
+          <div style={styles.supportBox}>
+            <h4 style={{margin: '0 0 5px 0', color: '#06b6d4'}}>Support StreamNet</h4>
+            <p style={{margin: 0, fontSize: '10px', color: '#888'}}>Donate for non-censorship.</p>
+          </div>
+        </aside>
 
         {/* --- CENTER VIDEO FEED --- */}
         <main style={styles.contentArea}>
@@ -135,7 +123,7 @@ const HomePage = () => {
                 ))}
               </div>
               
-              {/* Pagination Mockup */}
+              {/* Pagination Mockup (Original UI Restored) */}
               <div style={styles.pagination}>
                 <span style={styles.pageActive}>1</span>
                 <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>&gt;</span>
@@ -144,15 +132,13 @@ const HomePage = () => {
           )}
         </main>
 
-        {/* --- RIGHT SIDEBAR (Hidden on Mobile) --- */}
-        {!isMobile && (
-          <aside style={styles.rightSidebar}>
-            <h3 style={styles.categoryHeader}>CATEGORIES</h3>
-            {categories.map(cat => (
-              <button key={cat} style={styles.categoryItem}>{cat}</button>
-            ))}
-          </aside>
-        )}
+        {/* --- RIGHT SIDEBAR (Original UI Restored) --- */}
+        <aside style={styles.rightSidebar}>
+          <h3 style={styles.categoryHeader}>CATEGORIES</h3>
+          {categories.map(cat => (
+            <button key={cat} style={styles.categoryItem}>{cat}</button>
+          ))}
+        </aside>
       </div>
 
       {/* --- MODALS --- */}
@@ -192,15 +178,16 @@ const styles = {
   
   navbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 30px', background: '#0a0a0a', borderBottom: '1px solid #222', zIndex: 10 },
   logo: { margin: 0, fontSize: '24px', fontWeight: '900', color: '#fff', textShadow: '0 0 10px #a855f7', cursor: 'pointer' },
+  navLeft: { width: '220px' }, // Match sidebar width
   navCenter: { flex: 1, display: 'flex', justifyContent: 'center' },
   searchBar: { width: '100%', maxWidth: '400px', padding: '10px 20px', borderRadius: '20px', border: '1px solid #222', backgroundColor: '#111', color: '#fff', outline: 'none' },
-  navRight: { display: 'flex', alignItems: 'center', gap: '15px' },
+  navRight: { display: 'flex', alignItems: 'center', gap: '15px', width: '200px', justifyContent: 'flex-end' },
   uploadBtn: { padding: '8px 20px', background: 'linear-gradient(90deg, #a855f7, #06b6d4)', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: 'bold', cursor: 'pointer' },
   avatar: { width: '35px', height: '35px', borderRadius: '50%', backgroundColor: '#222', border: '2px solid #06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', cursor: 'pointer' },
 
   mainLayout: { display: 'flex', flex: 1, overflow: 'hidden' },
   
-  leftSidebar: { width: '220px', background: '#050505', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
+  leftSidebar: { width: '220px', minWidth: '220px', background: '#050505', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
   menuList: { display: 'flex', flexDirection: 'column', flex: 1 },
   menuItem: { padding: '15px 25px', background: 'transparent', border: 'none', color: '#888', fontWeight: 'bold', fontSize: '12px', textAlign: 'left', cursor: 'pointer' },
   menuItemActive: { padding: '15px 25px', background: '#111', border: 'none', color: '#fff', fontWeight: 'bold', fontSize: '12px', textAlign: 'left', cursor: 'pointer', borderLeft: '3px solid #a855f7' },
@@ -214,10 +201,10 @@ const styles = {
   cardInfo: { padding: '15px' },
   vidTitle: { margin: 0, fontSize: '14px', color: '#eee' },
   
-  pagination: { display: 'flex', gap: '15px', marginTop: '40px', color: '#888', fontSize: '14px', alignItems: 'center' },
+  pagination: { display: 'flex', gap: '15px', marginTop: '40px', color: '#888', fontSize: '14px', alignItems: 'center', cursor: 'pointer' },
   pageActive: { background: '#a855f7', color: '#fff', padding: '5px 10px', borderRadius: '4px', fontWeight: 'bold' },
 
-  rightSidebar: { width: '200px', background: '#050505', borderLeft: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0' },
+  rightSidebar: { width: '200px', minWidth: '200px', background: '#050505', borderLeft: '1px solid #111', display: 'flex', flexDirection: 'column', padding: '20px 0', overflowY: 'auto' },
   categoryHeader: { padding: '0 20px', fontSize: '11px', color: '#666', letterSpacing: '1px', marginBottom: '15px' },
   categoryItem: { padding: '10px 20px', background: 'transparent', border: 'none', color: '#888', fontSize: '12px', textAlign: 'left', cursor: 'pointer' },
 
