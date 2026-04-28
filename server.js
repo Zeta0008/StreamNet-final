@@ -38,19 +38,33 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ DB Connected"))
   .catch(err => console.error("❌ DB Error:", err));
 
-// 6. MODELS
+// --- UPDATE YOUR VIDEO MODEL ---
 const Video = mongoose.model('Video', new mongoose.Schema({
   title: String,
   videoUrl: String,
+  category: { type: String, default: 'NEW' }, // NEW: Saves the category
+  uploader: { type: String, default: 'Anonymous' }, // NEW: Saves the username
   createdAt: { type: Date, default: Date.now }
 }));
 
-// --- ROUTES ---
-
-// Get all videos
-app.get('/api/videos', async (req, res) => {
-  const videos = await Video.find().sort({ createdAt: -1 });
-  res.json(videos);
+// --- UPDATE YOUR UPLOAD ROUTE ---
+app.post('/api/upload', upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file received" });
+    
+    // NEW: We now grab the category and uploader from the frontend
+    const newVideo = new Video({ 
+      title: req.body.title, 
+      videoUrl: req.file.path,
+      category: req.body.category || 'NEW',
+      uploader: req.body.uploader || 'Anonymous'
+    });
+    
+    await newVideo.save();
+    res.status(200).json(newVideo);
+  } catch (error) {
+    res.status(500).json({ error: "Upload Failed" });
+  }
 });
 
 // The 100MB Upload Endpoint
