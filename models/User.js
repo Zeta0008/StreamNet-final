@@ -1,26 +1,10 @@
-// models/User.js
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  bio: { type: String, default: 'Anti-censorship advocate.' },
-  // Videos will be linked by user ID later
+  username: { type: String, required: true },
+  email: { type: String, required: true },
+  bio: { type: String, default: 'StreamNet Creator' },
+  avatarColor: { type: String, default: '#a855f7' }
 });
-
-// Hash password before saving
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-// Method to check password
-UserSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
 
 module.exports = mongoose.model('User', UserSchema);
