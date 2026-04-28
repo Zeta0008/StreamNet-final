@@ -2,33 +2,68 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Load environment variables
 dotenv.config();
-
 const app = express();
 
-// --- THE CRITICAL FIXES ---
-// 1. Force the server to accept connections from ANY frontend (Fixes the CORS error)
-app.use(cors({ 
-  origin: '*', 
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true 
-}));
+// 1. GATES OPEN: Fixes CORS so Vercel can talk to Render
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'], credentials: true }));
 
-// 2. Expand the server's limit to 100MB (Fixes the crashing on large videos)
+// 2. BIG THROAT: Allows the server to receive 100MB data
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-// Connect to MongoDB
+// 3. CLOUDINARY CONFIG
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// 4. MULTER 100MB LIMIT (The "Gatekeeper")
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: { folder: 'streamnet_uploads', resource_type: 'video' },
+});
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 100 * 1024 * 1024 } // 100MB exactly
+});
+
+// 5. DATABASE CONNECTION
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log("MongoDB Error:", err));
+  .then(() => console.log("✅ MongoDB Atlas Connected"))
+  .catch(err => console.log("❌ DB Error:", err));
+
+// 6. THE VIDEO MODEL (Inline if not using the folder)
+const Video = mongoose.model('Video', new mongoose.Schema({
+  title: String,
+  videoUrl: String,
+  createdAt: { type: Date, default: Date.now }
+}));
 
 // --- ROUTES ---
-// Import your routes here (adjust the paths if your folder structure is slightly different)
-app.use('/api/videos', require('./routes/videos'));
-app.use('/api/upload', require('./routes/upload'));
+
+// GET: Fetch all videos for the grid
+app.get('/api/videos', async (req, res) => {
+  const videos = await Video.find().sort({ createdAt: -1 });
+  res.json(videos);
+});
+
+// POST: The 100MB Upload Route
+app.post('/api/upload', upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file received" });
+    const newVideo = new Video({ title: req.body.title, videoUrl: req.file.path });
+    await newVideo.save();
+    res.status(200).json(newVideo);
+  } catch (error) {
+    res.status(500).json({ error: "Upload Failed" });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
