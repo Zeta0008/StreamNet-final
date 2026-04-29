@@ -88,21 +88,18 @@ const HomePage = () => {
     }
   };
 
-  // NEW: Private Archive Logic (Stores dummy URL for presentation if no file is selected)
-  const handlePrivateUpload = (e) => {
-    e.preventDefault();
-    const newPrivate = { 
-      id: Date.now(), 
-      title: e.target.title.value, 
-      date: new Date().toLocaleDateString(),
-      // In a real app we'd upload this. For presentation, we store a secure local reference
-      videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' 
-    };
-    const updated = [...privateArchives, newPrivate];
-    setPrivateArchives(updated);
-    localStorage.setItem('sn_private', JSON.stringify(updated));
-    e.target.reset();
-  };
+  // --- BULLETPROOF DATA FILTERING ---
+  const displayedVideos = videos.filter(v => {
+    // 1. Safety fallbacks in case an old video in the database is missing data
+    const safeTitle = v.title || 'Untitled Video';
+    const safeCategory = v.category || 'NEW';
+    
+    // 2. The actual filtering
+    const matchesSearch = safeTitle.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'ALL' || safeCategory === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   const handleMenuClick = (item) => {
     if (item === 'HOME') { setSelectedCategory('ALL'); setSearchQuery(''); setActiveModal(null); }
